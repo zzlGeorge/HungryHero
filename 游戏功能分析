@@ -1,0 +1,39 @@
+功能列表
+    1.简介（讲诉背景）
+    2.用到的技术
+    3.场景
+        -菜单界面
+        -关于菜单界面
+        -游戏核心界面
+    4.超人的设计
+        -普通状态的超人
+        -急速飞行状态的超人
+        -撞击状态的超人
+        -掉落状态的超人
+    5.食物的设计
+    6.障碍物的设计
+    7.咖啡和蘑菇的设计
+    8.背景的设计
+    9.音乐和音效
+
+
+代码架构(面向对象编程思想)
+    elements
+        -GameBackground.js
+        -Hero.js
+        -Item.js
+        -Obstacle.js
+    scene
+        -MenuScene.js
+        -AboutScene.js
+        -GameScene.js
+    ui
+        -GameOverUI.js
+        -GameSceneUI.js
+        -SoundButton.js
+    logic
+        -FoodManager.js
+        -ObstacleManager.js
+    Game.js
+    Sound.js
+    GameConstants.js
