@@ -58,7 +58,7 @@ var MenuScene = cc.Scene.extend({
 
     _play: function () {
         Sound.playCoffee();
-        // cc.director.runScene(new GameScene());
+        cc.director.runScene(new GameScene());
     },
 
     _about: function () {

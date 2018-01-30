@@ -16,6 +16,11 @@
         "src/scene/MenuScene.js",
         "src/scene/AboutScene.js",
         "src/ui/SoundButton.js",
-        "src/Sound.js"
+        "src/Sound.js",
+        "src/GameConstants.js",
+        "src/Game.js",
+        "src/elements/GameBackground.js",
+        "src/ui/GameSceneUI.js",
+        "src/scene/GameScene.js"
     ]
 }

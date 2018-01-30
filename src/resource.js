@@ -1,7 +1,8 @@
 var res = {
     HelloWorld_png: "res/HelloWorld.png",
     texture_plist: "res/graphics/texture.plist",
-    bgWelcome_jpg: "res/graphics/bgWelcome.jpg"
+    bgWelcome_jpg: "res/graphics/bgWelcome.jpg",
+    bgLayer_jpg:"res/graphics/bgLayer.jpg"
 };
 
 var g_resources = [];
