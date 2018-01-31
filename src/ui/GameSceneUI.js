@@ -1,3 +1,7 @@
+/**
+ * 游戏场景UI
+ * */
+
 var GameSceneUI = cc.Layer.extend({
     _lifeText: null,  //生命值
     _distanceText: null,//里程
