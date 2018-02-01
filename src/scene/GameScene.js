@@ -6,10 +6,12 @@ var GameScene = cc.Scene.extend({
 
     _hero: null,
     _ui: null,
+    _gameOverUI: null,
     _background: null,
     itemBatchLayer: null,
 
     _foodManager: null,
+    _obstacleManager: null,
 
     _touchY: 0,
 
@@ -49,6 +51,7 @@ var GameScene = cc.Scene.extend({
 
 
         this._foodManager = new FoodManager(this);
+        this._obstacleManager = new ObstacleManager(this);
 
         this.init();
 
@@ -70,6 +73,7 @@ var GameScene = cc.Scene.extend({
         this._hero.y = winSize.height / 2;
 
         this._foodManager.init();
+        this._obstacleManager.init();
 
         this.scheduleUpdate();
     },
@@ -101,6 +105,45 @@ var GameScene = cc.Scene.extend({
         }
     },
 
+    _shakeAnimation: function () {//撞击时画面抖动
+        // Animate quake effect, shaking the camera a little to the sides and up and down.
+        if (Game.user.hitObstacle > 0) {
+            this.x = parseInt(Math.random() * Game.user.hitObstacle - Game.user.hitObstacle * 0.5);
+            this.y = parseInt(Math.random() * Game.user.hitObstacle - Game.user.hitObstacle * 0.5);
+        } else if (this.x !== 0) {
+            // If the shake value is 0, reset the stage back to normal. Reset to initial position.
+            this.x = 0;
+            this.y = 0;
+        }
+    },
+
+    showWindEffect: function () {
+        if (this._windEffect)
+            return;
+        this._windEffect = new cc.ParticleSystem(res.wind_plist);
+        this._windEffect.x = cc.director.getWinSize().width;
+        this._windEffect.y = cc.director.getWinSize().height / 2;
+        this._windEffect.setScaleX(100);
+        this.addChild(this._windEffect);
+    },
+
+    stopWindEffect: function () {
+        if (this._windEffect) {
+            this._windEffect.stopSystem();
+            this.removeChild(this._windEffect);
+            this._windEffect = null;
+        }
+    },
+
+    showCoffeeEffect: function () {
+        if (this._coffeeEffect)
+            return;
+        this._coffeeEffect = new cc.ParticleSystem(res.coffee_plist);
+        this.addChild(this._coffeeEffect);
+        this._coffeeEffect.x = this._hero.x + this._hero.width / 4;
+        this._coffeeEffect.y = this._hero.y;
+    },
+
     stopCoffeeEffect: function () {
         if (this._coffeeEffect) {
             this._coffeeEffect.stopSystem();
@@ -109,18 +152,70 @@ var GameScene = cc.Scene.extend({
         }
     },
 
+    showMushroomEffect: function () {
+        if (this._mushroomEffect)
+            return;
+        this._mushroomEffect = new cc.ParticleSystem(res.mushroom_plist);
+        this.addChild(this._mushroomEffect);
+        this._mushroomEffect.x = this._hero.x + this._hero.width / 4;
+        this._mushroomEffect.y = this._hero.y;
+    },
+
+    stopMushroomEffect: function () {
+        if (this._mushroomEffect) {
+            this._mushroomEffect.stopSystem();
+            this.removeChild(this._mushroomEffect);
+            this._mushroomEffect = null;
+        }
+    },
+
+    showEatEffect: function (itemX, itemY) {
+        var eat = new cc.ParticleSystem(res.eat_plist);
+        eat.setAutoRemoveOnFinish(true);
+        eat.x = itemX;
+        eat.y = itemY;
+        this.addChild(eat);
+    },
+
+    /**
+     * hero被碰撞N次后，结束游戏；结束之前，先播放hero掉落的动画
+     */
+    endGame: function () {
+        this.x = 0;
+        this.y = 0;
+        Game.gameState = GameConstants.GAME_STATE_OVER;
+        this.stopCoffeeEffect();
+        // this.stopWindEffect();
+        // this.stopMushroomEffect();
+    },
+
+    _gameOver: function () {
+        if (!this._gameOverUI) {
+            this._gameOverUI = new GameOverUI(this);
+            this.addChild(this._gameOverUI);
+        }
+        this._gameOverUI.setVisible(true);
+        this._gameOverUI.init();
+        Sound.playLose();
+    },
+
+    /**
+     *
+     * @param elapsed 秒
+     */
     update: function (elapsed) {
         var winSize = cc.director.getWinSize();
         switch (Game.gameState) {
-            case GameConstants.GAME_STATE_IDLE://游戏空闲状态（开始）,超人加速飞到屏幕1/4位置
+            case GameConstants.GAME_STATE_IDLE:
                 // Take off.
-                if (this._hero.x < winSize.width * 0.25) {
-                    this._hero.x += ((winSize.width * 0.25 + 10) - this._hero.x) * 0.05;
+                if (this._hero.x < winSize.width * 0.5 * 0.5) {
+                    this._hero.x += ((winSize.width * 0.5 * 0.5 + 10) - this._hero.x) * 0.05;
                     this._hero.y -= (this._hero.y - this._touchY) * 0.1;
 
                     Game.user.heroSpeed += (GameConstants.HERO_MIN_SPEED - Game.user.heroSpeed) * 0.05;
-                    this._background.speed = Game.user.heroSpeed * elapsed;//调整背景视差速率
-                } else {
+                    this._background.speed = Game.user.heroSpeed * elapsed;
+                }
+                else {
                     Game.gameState = GameConstants.GAME_STATE_FLYING;
                     this._hero.state = GameConstants.HERO_STATE_FLYING;
                 }
@@ -128,29 +223,32 @@ var GameScene = cc.Scene.extend({
                 this._ui.update();
                 break;
 
-            case GameConstants.GAME_STATE_FLYING:  //游戏飞行状态（游戏中）
+            case GameConstants.GAME_STATE_FLYING:
                 // If drank coffee, fly faster for a while.
-                if (Game.user.coffee > 0) //咖啡状态
+                if (Game.user.coffee > 0)
                     Game.user.heroSpeed += (GameConstants.HERO_MAX_SPEED - Game.user.heroSpeed) * 0.2;
                 else
                     this.stopCoffeeEffect();
 
                 // If not hit by obstacle, fly normally.
-                if (Game.user.hitObstacle <= 0) {//普通状态
+                if (Game.user.hitObstacle <= 0) {
                     this._hero.state = GameConstants.HERO_STATE_FLYING;
                     this._hero.y -= (this._hero.y - this._touchY) * 0.1;
 
                     // If this._hero is flying extremely fast, create a wind effect and show force field around this._hero.
                     if (Game.user.heroSpeed > GameConstants.HERO_MIN_SPEED + 100) {
+                        this.showWindEffect();
                         // Animate this._hero faster.
                         this._hero.toggleSpeed(true);
                     }
                     else {
                         // Animate this._hero normally.
                         this._hero.toggleSpeed(false);
+                        this.stopWindEffect();
                     }
                     this._handleHeroPose();
-                } else {//被撞击状态
+
+                } else {
                     // Hit by obstacle
                     if (Game.user.coffee <= 0) {
                         // Play this._hero animation for obstacle hit.
@@ -170,26 +268,72 @@ var GameScene = cc.Scene.extend({
 
                     // If hit by an obstacle.
                     Game.user.hitObstacle--;
+
+                    // Camera shake.
+                    this._shakeAnimation();
                 }
 
                 // If we have a mushroom, reduce the value of the power.
                 if (Game.user.mushroom > 0) Game.user.mushroom -= elapsed;
+                else this.stopMushroomEffect();
 
                 // If we have a coffee, reduce the value of the power.
                 if (Game.user.coffee > 0) Game.user.coffee -= elapsed;
-                Game.user.heroSpeed -= (Game.user.heroSpeed - GameConstants.HERO_MIN_SPEED) * 0.01;
 
-                // Set the background's speed based on hero's speed.
-                this._background.speed = Game.user.heroSpeed * elapsed;
+                Game.user.heroSpeed -= (Game.user.heroSpeed - GameConstants.HERO_MIN_SPEED) * 0.01;
 
                 // Create food items.
                 this._foodManager.update(this._hero, elapsed);
+                // Create obstacles.
+                this._obstacleManager.update(this._hero, elapsed);
+
+                // Set the background's speed based on hero's speed.
+                this._background.speed = Game.user.heroSpeed * elapsed;
 
                 // Calculate maximum distance travelled.
                 Game.user.distance += (Game.user.heroSpeed * elapsed) * 0.1;
                 this._ui.update();
 
                 break;
+
+            case GameConstants.GAME_STATE_OVER:
+                this._foodManager.removeAll();
+                this._obstacleManager.removeAll();
+
+                // Spin the hero.
+                this._hero.setRotation(30);
+
+                // Make the hero fall.
+
+                // If hero is still on screen, push him down and outside the screen. Also decrease his speed.
+                // Checked for +width below because width is > height. Just a safe value.
+                if (this._hero.y > -this._hero.height / 2) {
+                    Game.user.heroSpeed -= Game.user.heroSpeed * elapsed;
+                    this._hero.y -= winSize.height * elapsed;
+                }
+                else {
+                    // Once he moves out, reset speed to 0.
+                    Game.user.heroSpeed = 0;
+
+                    // Stop game tick.
+                    this.unscheduleUpdate();
+
+                    // Game over.
+                    this._gameOver();
+                }
+
+                // Set the background's speed based on hero's speed.
+                this._background.speed = Game.user.heroSpeed * elapsed;
+                break;
+        }
+
+        if (this._mushroomEffect) {
+            this._mushroomEffect.x = this._hero.x + this._hero.width / 4;
+            this._mushroomEffect.y = this._hero.y;
+        }
+        if (this._coffeeEffect) {
+            this._coffeeEffect.x = this._hero.x + this._hero.width / 4;
+            this._coffeeEffect.y = this._hero.y;
         }
     }
 });

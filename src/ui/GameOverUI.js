@@ -51,6 +51,7 @@ var GameOverUI = cc.Layer.extend({
 
     _replay: function () {
         this._gameScene.init();
+        this.setVisible(false);//重来时隐藏游戏结束层
     },
 
     _about: function () {
