@@ -15,6 +15,8 @@
     "src/resource.js",
     "src/Sound.js",
     "src/GameConstants.js",
+    "src/GameEffect.js",
+    "src/animation/HeroAnimation.js",
     "src/elements/GameBackground.js",
     "src/elements/Hero.js",
     "src/elements/Item.js",

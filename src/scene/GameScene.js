@@ -88,95 +88,6 @@ var GameScene = cc.Scene.extend({
             this._touchY = event.getLocationY();
     },
 
-    _handleHeroPose: function () {//移动鼠标时使超人倾斜
-        var winSize = cc.director.getWinSize();
-        // Rotate this._hero based on mouse position.
-        if (Math.abs(-(this._hero.y - this._touchY) * 0.2) < 30)
-            this._hero.setRotation((this._hero.y - this._touchY) * 0.2);
-
-        // Confine the this._hero to stage area limit
-        if (this._hero.y < this._hero.height * 0.5) {
-            this._hero.y = this._hero.height * 0.5;
-            this._hero.setRotation(0);
-        }
-        if (this._hero.y > winSize.height - this._hero.height * 0.5) {
-            this._hero.y = winSize.height - this._hero.height * 0.5;
-            this._hero.setRotation(0);
-        }
-    },
-
-    _shakeAnimation: function () {//撞击时画面抖动
-        // Animate quake effect, shaking the camera a little to the sides and up and down.
-        if (Game.user.hitObstacle > 0) {
-            this.x = parseInt(Math.random() * Game.user.hitObstacle - Game.user.hitObstacle * 0.5);
-            this.y = parseInt(Math.random() * Game.user.hitObstacle - Game.user.hitObstacle * 0.5);
-        } else if (this.x !== 0) {
-            // If the shake value is 0, reset the stage back to normal. Reset to initial position.
-            this.x = 0;
-            this.y = 0;
-        }
-    },
-
-    showWindEffect: function () {
-        if (this._windEffect)
-            return;
-        this._windEffect = new cc.ParticleSystem(res.wind_plist);
-        this._windEffect.x = cc.director.getWinSize().width;
-        this._windEffect.y = cc.director.getWinSize().height / 2;
-        this._windEffect.setScaleX(100);
-        this.addChild(this._windEffect);
-    },
-
-    stopWindEffect: function () {
-        if (this._windEffect) {
-            this._windEffect.stopSystem();
-            this.removeChild(this._windEffect);
-            this._windEffect = null;
-        }
-    },
-
-    showCoffeeEffect: function () {
-        if (this._coffeeEffect)
-            return;
-        this._coffeeEffect = new cc.ParticleSystem(res.coffee_plist);
-        this.addChild(this._coffeeEffect);
-        this._coffeeEffect.x = this._hero.x + this._hero.width / 4;
-        this._coffeeEffect.y = this._hero.y;
-    },
-
-    stopCoffeeEffect: function () {
-        if (this._coffeeEffect) {
-            this._coffeeEffect.stopSystem();
-            this.removeChild(this._coffeeEffect);
-            this._coffeeEffect = null;
-        }
-    },
-
-    showMushroomEffect: function () {
-        if (this._mushroomEffect)
-            return;
-        this._mushroomEffect = new cc.ParticleSystem(res.mushroom_plist);
-        this.addChild(this._mushroomEffect);
-        this._mushroomEffect.x = this._hero.x + this._hero.width / 4;
-        this._mushroomEffect.y = this._hero.y;
-    },
-
-    stopMushroomEffect: function () {
-        if (this._mushroomEffect) {
-            this._mushroomEffect.stopSystem();
-            this.removeChild(this._mushroomEffect);
-            this._mushroomEffect = null;
-        }
-    },
-
-    showEatEffect: function (itemX, itemY) {
-        var eat = new cc.ParticleSystem(res.eat_plist);
-        eat.setAutoRemoveOnFinish(true);
-        eat.x = itemX;
-        eat.y = itemY;
-        this.addChild(eat);
-    },
-
     /**
      * hero被碰撞N次后，结束游戏；结束之前，先播放hero掉落的动画
      */
@@ -184,7 +95,7 @@ var GameScene = cc.Scene.extend({
         this.x = 0;
         this.y = 0;
         Game.gameState = GameConstants.GAME_STATE_OVER;
-        this.stopCoffeeEffect();
+        GameEffect.stopCoffeeEffect(this);
         // this.stopWindEffect();
         // this.stopMushroomEffect();
     },
@@ -219,7 +130,7 @@ var GameScene = cc.Scene.extend({
                     Game.gameState = GameConstants.GAME_STATE_FLYING;
                     this._hero.state = GameConstants.HERO_STATE_FLYING;
                 }
-                this._handleHeroPose();
+                HeroAnimation._handleHeroPose(this._hero, this._touchY);
                 this._ui.update();
                 break;
 
@@ -228,7 +139,7 @@ var GameScene = cc.Scene.extend({
                 if (Game.user.coffee > 0)
                     Game.user.heroSpeed += (GameConstants.HERO_MAX_SPEED - Game.user.heroSpeed) * 0.2;
                 else
-                    this.stopCoffeeEffect();
+                    GameEffect.stopCoffeeEffect(this);
 
                 // If not hit by obstacle, fly normally.
                 if (Game.user.hitObstacle <= 0) {
@@ -237,16 +148,16 @@ var GameScene = cc.Scene.extend({
 
                     // If this._hero is flying extremely fast, create a wind effect and show force field around this._hero.
                     if (Game.user.heroSpeed > GameConstants.HERO_MIN_SPEED + 100) {
-                        this.showWindEffect();
+                        GameEffect.showWindEffect(this);
                         // Animate this._hero faster.
                         this._hero.toggleSpeed(true);
                     }
                     else {
                         // Animate this._hero normally.
                         this._hero.toggleSpeed(false);
-                        this.stopWindEffect();
+                        GameEffect.stopWindEffect(this);
                     }
-                    this._handleHeroPose();
+                    HeroAnimation._handleHeroPose(this._hero, this._touchY);
 
                 } else {
                     // Hit by obstacle
@@ -270,12 +181,12 @@ var GameScene = cc.Scene.extend({
                     Game.user.hitObstacle--;
 
                     // Camera shake.
-                    this._shakeAnimation();
+                    GameEffect._shakeAnimation(this);
                 }
 
                 // If we have a mushroom, reduce the value of the power.
                 if (Game.user.mushroom > 0) Game.user.mushroom -= elapsed;
-                else this.stopMushroomEffect();
+                else GameEffect.stopMushroomEffect(this);
 
                 // If we have a coffee, reduce the value of the power.
                 if (Game.user.coffee > 0) Game.user.coffee -= elapsed;
@@ -327,6 +238,7 @@ var GameScene = cc.Scene.extend({
                 break;
         }
 
+        //防止移动超人特效不动的情况
         if (this._mushroomEffect) {
             this._mushroomEffect.x = this._hero.x + this._hero.width / 4;
             this._mushroomEffect.y = this._hero.y;

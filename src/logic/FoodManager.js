@@ -75,8 +75,7 @@ var FoodManager = cc.Class.extend({
         // If hero has not travelled the required distance, don't change the pattern.
         if (this._patternChangeDistance > 0) {
             this._patternChangeDistance -= Game.user.heroSpeed * elapsed;
-        }
-        else {
+        } else {
             // If hero has travelled the required distance, change the pattern.
             if (Math.random() < 0.7) {
                 // If random number is < normal item chance (0.7), decide on a random pattern for items.
@@ -124,8 +123,7 @@ var FoodManager = cc.Class.extend({
         // Create a food item after we pass some distance (patternGap).
         if (this._patternGapCount < this._patternGap) {
             this._patternGapCount += Game.user.heroSpeed * elapsed;
-        }
-        else if (this._pattern !== 0) {
+        } else if (this._pattern !== 0) {
             // If there is a pattern already set.
             this._patternGapCount = 0;
             var winSize = cc.director.getWinSize();
@@ -283,28 +281,26 @@ var FoodManager = cc.Class.extend({
                         if (item.type <= GameConstants.ITEM_TYPE_5) {
                             Game.user.score += item.type;
                             Sound.playEat();
-                        }
-                        else if (item.type === GameConstants.ITEM_TYPE_COFFEE) {
+                        } else if (item.type === GameConstants.ITEM_TYPE_COFFEE) {
                             // If hero drinks coffee, add up the score.
                             Game.user.score += 1;
 
                             // How long does coffee power last? (in seconds)
                             Game.user.coffee = 5;
-                            this._gameScene.showCoffeeEffect();
+                            GameEffect.showCoffeeEffect(this._gameScene);
                             Sound.playCoffee();
-                        }
-                        else if (item.type === GameConstants.ITEM_TYPE_MUSHROOM) {
+                        } else if (item.type === GameConstants.ITEM_TYPE_MUSHROOM) {
                             // If hero eats a mushroom, add up the score.
                             Game.user.score += 1;
 
                             // How long does mushroom power last? (in seconds)
                             Game.user.mushroom = 4;
-                            this._gameScene.showMushroomEffect();
+                            GameEffect.showMushroomEffect(this._gameScene);
                             Sound.playMushroom();
                         }
 
                         // Create an eat particle at the position of the food item that was eaten.
-                        this._gameScene.showEatEffect(item.x, item.y);
+                        GameEffect.showEatEffect(this._gameScene, item.x, item.y);
 
                         // Dispose the food item.
                         this._itemsToAnimate.splice(i, 1);
